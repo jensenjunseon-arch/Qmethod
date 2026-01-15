@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html lang="ko">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Q-Methodology Research Insight Generator</title>
+    <link rel="stylesheet" href="/static/style.css">
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700&display=swap"
+        rel="stylesheet">
+</head>
+
+<body>
+    <div class="container">
+        <!-- Header -->
+        <header class="header">
+            <div class="logo">🔬</div>
+            <h1>Q-Methodology Research Insight Generator</h1>
+            <p class="subtitle">Q방법론 기반 연구 통찰 생성기</p>
+        </header>
+
+        <!-- Main Content -->
+        <main>
+            <!-- Input Section -->
+            <section id="input-section" class="card">
+                <h2>📌 연구 주제 입력</h2>
+                <p class="description">분석하고 싶은 연구 주제를 입력해주세요. AI가 Q방법론 분석을 자동으로 수행합니다.</p>
+
+                <!-- API Key Input -->
+                <div class="input-group api-key-group">
+                    <label for="api-key-input">🔑 API Key (OpenAI or Gemini)</label>
+                    <input type="password" id="api-key-input" placeholder="sk-..." autocomplete="off">
+                    <small class="api-key-hint">API 키는 서버에 저장되지 않으며, 이 세션에서만 사용됩니다.</small>
+                </div>
+
+                <div class="input-group">
+                    <label for="topic-input">📝 연구 주제</label>
+                    <textarea id="topic-input"
+                        placeholder="예: MZ세대의 워라밸에 대한 인식&#10;예: 원격근무에 대한 직장인들의 태도&#10;예: 환경 보호 정책에 대한 시민들의 인식"></textarea>
+                </div>
+
+                <button id="start-btn" class="btn-primary">
+                    <span class="btn-icon">🚀</span>
+                    분석 시작
+                </button>
+            </section>
+
+            <!-- Progress Section -->
+            <section id="progress-section" class="card hidden">
+                <h2>⏳ 분석 진행 중</h2>
+
+                <div class="progress-container">
+                    <div class="progress-bar">
+                        <div id="progress-fill" class="progress-fill"></div>
+                    </div>
+                    <span id="progress-text">0%</span>
+                </div>
+
+                <div id="current-step" class="current-step">
+                    <div class="spinner"></div>
+                    <span id="step-text">시작 준비 중...</span>
+                    <span id="elapsed-time" class="elapsed-time">0:00</span>
+                </div>
+
+                <div class="steps-list">
+                    <div class="step" data-step="1">
+                        <span class="step-icon">📝</span>
+                        <span class="step-text">주제 구체화</span>
+                    </div>
+                    <div class="step" data-step="2">
+                        <span class="step-icon">📋</span>
+                        <span class="step-text">Q-Set 생성 (60문항)</span>
+                    </div>
+                    <div class="step" data-step="3">
+                        <span class="step-icon">👥</span>
+                        <span class="step-text">페르소나 생성 (20명)</span>
+                    </div>
+                    <div class="step" data-step="4">
+                        <span class="step-icon">🎯</span>
+                        <span class="step-text">Q-Sorting 시뮬레이션</span>
+                    </div>
+                    <div class="step" data-step="5">
+                        <span class="step-icon">📊</span>
+                        <span class="step-text">요인 분석</span>
+                    </div>
+                    <div class="step" data-step="6">
+                        <span class="step-icon">🔀</span>
+                        <span class="step-text">유형 이원화</span>
+                    </div>
+                    <div class="step" data-step="7">
+                        <span class="step-icon">📄</span>
+                        <span class="step-text">리포트 생성</span>
+                    </div>
+                </div>
+
+                <div id="log-container" class="log-container">
+                    <h4>📜 로그</h4>
+                    <div id="logs"></div>
+                </div>
+            </section>
+
+            <!-- Result Section -->
+            <section id="result-section" class="card hidden">
+                <h2>✅ 분석 완료</h2>
+
+                <div id="result-summary" class="result-summary"></div>
+
+                <div id="types-container" class="types-container"></div>
+
+                <button id="restart-btn" class="btn-secondary">
+                    <span class="btn-icon">🔄</span>
+                    새 분석 시작
+                </button>
+            </section>
+
+            <!-- Error Section -->
+            <section id="error-section" class="card hidden">
+                <h2>❌ 오류 발생</h2>
+                <div id="error-message" class="error-message"></div>
+                <button id="retry-btn" class="btn-secondary">다시 시도</button>
+            </section>
+        </main>
+
+        <!-- Footer -->
+        <footer>
+            <p>Q-Methodology Research Insight Generator v1.0</p>
+        </footer>
+    </div>
+
+    <script src="/static/app.js"></script>
+</body>
+
+</html>
