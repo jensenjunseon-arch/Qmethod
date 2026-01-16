@@ -256,6 +256,25 @@ class QMethodApp {
                             </ol>
                         </div>
                     </details>
+                    
+                    <!-- 합의 문항 토글 -->
+                    <details class="nested-accordion">
+                        <summary class="nested-trigger">🤝 합의 문항 (모든 유형이 동의/비동의)</summary>
+                        <div class="nested-content">
+                            ${(result.consensus_statements && result.consensus_statements.length > 0) ? `
+                                <p class="consensus-note">모든 Factor에서 Z-score 차이가 0.5 이하인 문항들입니다.</p>
+                                <ul class="consensus-list">
+                                    ${result.consensus_statements.map(c => `
+                                        <li class="consensus-item ${c.interpretation}">
+                                            <span class="consensus-score ${c.avg_z_score >= 0 ? 'positive' : 'negative'}">${c.avg_z_score >= 0 ? '+' : ''}${c.avg_z_score}</span>
+                                            <span class="consensus-badge">${c.interpretation}</span>
+                                            <span class="consensus-text">${c.statement}</span>
+                                        </li>
+                                    `).join('')}
+                                </ul>
+                            ` : '<p>합의 문항이 없습니다. 유형 간 구분이 명확합니다.</p>'}
+                        </div>
+                    </details>
                 </div>
             </details>
         `;

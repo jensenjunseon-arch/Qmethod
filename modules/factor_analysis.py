@@ -290,6 +290,97 @@ def identify_significant_loadings(
     return result
 
 
+def identify_consensus_statements(
+    factor_scores: pd.DataFrame,
+    q_set: list[str],
+    threshold: float = 0.5
+) -> list[dict]:
+    """
+    합의 문항(Consensus Statements)을 식별합니다.
+    모든 Factor에서 비슷한 Z-score를 받은 문항들입니다.
+    
+    Args:
+        factor_scores: 요인별 문항 Z-score DataFrame
+        q_set: Q-Set 문항 리스트
+        threshold: Z-score 차이 임계값 (이 이하면 합의로 판단)
+    
+    Returns:
+        합의 문항 리스트
+    """
+    consensus = []
+    n_factors = len(factor_scores.columns)
+    
+    for idx in factor_scores.index:
+        item_num = int(idx.replace("Q", "")) - 1
+        scores = factor_scores.loc[idx].values
+        
+        # 모든 Factor 간 Z-score 차이 계산
+        max_diff = max(scores) - min(scores)
+        avg_score = np.mean(scores)
+        
+        # 차이가 임계값 이하면 합의 문항
+        if max_diff <= threshold:
+            consensus.append({
+                "item_number": item_num + 1,
+                "statement": q_set[item_num] if item_num < len(q_set) else f"Q{item_num+1}",
+                "avg_z_score": float(avg_score),
+                "max_difference": float(max_diff),
+                "factor_scores": {col: float(factor_scores.loc[idx, col]) for col in factor_scores.columns}
+            })
+    
+    # 평균 Z-score 절대값으로 정렬 (강한 합의가 먼저)
+    consensus.sort(key=lambda x: abs(x["avg_z_score"]), reverse=True)
+    
+    return consensus
+
+
+def identify_distinguishing_statements(
+    factor_scores: pd.DataFrame,
+    q_set: list[str],
+    threshold: float = 1.0
+) -> dict:
+    """
+    구분 문항(Distinguishing Statements)을 식별합니다.
+    특정 Factor에서만 높거나 낮은 Z-score를 보이는 문항들입니다.
+    
+    Args:
+        factor_scores: 요인별 문항 Z-score DataFrame
+        q_set: Q-Set 문항 리스트
+        threshold: 다른 Factor와의 Z-score 차이 임계값
+    
+    Returns:
+        Factor별 구분 문항 딕셔너리
+    """
+    distinguishing = {}
+    
+    for col in factor_scores.columns:
+        other_cols = [c for c in factor_scores.columns if c != col]
+        dist_items = []
+        
+        for idx in factor_scores.index:
+            item_num = int(idx.replace("Q", "")) - 1
+            this_score = factor_scores.loc[idx, col]
+            other_scores = [factor_scores.loc[idx, c] for c in other_cols]
+            
+            # 다른 모든 Factor보다 현저히 높거나 낮은 경우
+            min_diff = min([abs(this_score - other) for other in other_scores])
+            
+            if min_diff >= threshold:
+                dist_items.append({
+                    "item_number": item_num + 1,
+                    "statement": q_set[item_num] if item_num < len(q_set) else f"Q{item_num+1}",
+                    "z_score": float(this_score),
+                    "min_diff_from_others": float(min_diff),
+                    "direction": "high" if this_score > 0 else "low"
+                })
+        
+        # Z-score 차이로 정렬
+        dist_items.sort(key=lambda x: x["min_diff_from_others"], reverse=True)
+        distinguishing[col] = dist_items
+    
+    return distinguishing
+
+
 def get_factor_interpretation_data(
     factor_scores: pd.DataFrame,
     q_set: list[str],

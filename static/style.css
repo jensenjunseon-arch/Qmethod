@@ -830,6 +830,76 @@ details[open]>.nested-trigger::before {
     background: linear-gradient(135deg, #ef4444, #dc2626);
 }
 
+/* Consensus Statements */
+.consensus-note {
+    font-size: 0.85rem;
+    color: var(--text-secondary);
+    margin-bottom: 1rem;
+    font-style: italic;
+}
+
+.consensus-list {
+    list-style: none;
+    padding: 0;
+}
+
+.consensus-item {
+    display: flex;
+    gap: 0.75rem;
+    align-items: center;
+    padding: 0.75rem;
+    margin-bottom: 0.5rem;
+    background: rgba(255, 255, 255, 0.03);
+    border-radius: 8px;
+    border-left: 3px solid var(--border);
+}
+
+.consensus-item.동의 {
+    border-left-color: #10b981;
+}
+
+.consensus-item.비동의 {
+    border-left-color: #ef4444;
+}
+
+.consensus-item.중립 {
+    border-left-color: #6b7280;
+}
+
+.consensus-score {
+    min-width: 50px;
+    padding: 0.25rem 0.5rem;
+    border-radius: 5px;
+    font-size: 0.8rem;
+    font-weight: 600;
+    text-align: center;
+    font-family: 'Monaco', 'Consolas', monospace;
+}
+
+.consensus-score.positive {
+    background: linear-gradient(135deg, #10b981, #059669);
+    color: white;
+}
+
+.consensus-score.negative {
+    background: linear-gradient(135deg, #ef4444, #dc2626);
+    color: white;
+}
+
+.consensus-badge {
+    padding: 0.2rem 0.5rem;
+    border-radius: 4px;
+    font-size: 0.75rem;
+    font-weight: 600;
+    background: var(--bg-card-hover);
+    color: var(--text-secondary);
+}
+
+.consensus-text {
+    flex: 1;
+    color: var(--text-primary);
+}
+
 /* Responsive */
 @media (max-width: 768px) {
     .container {

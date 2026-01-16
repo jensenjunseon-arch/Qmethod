@@ -70,6 +70,34 @@ def _get_factor_scores_summary(factor_scores_df, q_set, top_n=5):
     return summary
 
 
+def _get_consensus_statements(factor_scores_df, q_set, threshold=0.5):
+    """합의 문항 식별 - 모든 Factor에서 비슷한 Z-score를 받은 문항"""
+    if factor_scores_df is None:
+        return []
+    
+    import numpy as np
+    consensus = []
+    
+    for idx in factor_scores_df.index:
+        item_num = int(idx.replace("Q", "")) - 1
+        scores = factor_scores_df.loc[idx].values
+        
+        max_diff = max(scores) - min(scores)
+        avg_score = np.mean(scores)
+        
+        if max_diff <= threshold:
+            consensus.append({
+                'item_number': item_num + 1,
+                'statement': q_set[item_num] if item_num < len(q_set) else f"Q{item_num+1}",
+                'avg_z_score': round(float(avg_score), 2),
+                'max_difference': round(float(max_diff), 2),
+                'interpretation': '동의' if avg_score > 0.3 else ('비동의' if avg_score < -0.3 else '중립')
+            })
+    
+    consensus.sort(key=lambda x: abs(x['avg_z_score']), reverse=True)
+    return consensus[:10]  # 상위 10개만
+
+
 @app.route('/')
 def index():
     """메인 페이지"""
@@ -209,6 +237,8 @@ def run_analysis_background(session_id: str, topic: str, api_key: str):
             },
             # 요인별 Z-score 상위/하위 문항
             'factor_scores_summary': _get_factor_scores_summary(factor_result.get('factor_scores'), q_set),
+            # 합의 문항 (모든 Factor에서 비슷한 점수)
+            'consensus_statements': _get_consensus_statements(factor_result.get('factor_scores'), q_set),
             # 유형 정보
             'types': types,
             'n_types': len(types),
