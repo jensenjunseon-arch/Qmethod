@@ -109,13 +109,20 @@ def start_analysis():
     """분석 시작"""
     data = request.json
     topic = data.get('topic', '')
-    api_key = data.get('api_key', '')
+    api_key = data.get('api_key', '').strip()
     
     if not topic:
         return jsonify({'error': '연구 주제를 입력해주세요.'}), 400
     
+    # If no API key provided in request, check server configuration
     if not api_key:
-        return jsonify({'error': 'OpenAI API Key를 입력해주세요.'}), 400
+        if config.OPENAI_API_KEY:
+            api_key = config.OPENAI_API_KEY
+        elif config.GOOGLE_API_KEY:
+            api_key = config.GOOGLE_API_KEY
+    
+    if not api_key:
+        return jsonify({'error': '서버에 API Key가 설정되어 있지 않습니다. 관리자에게 문의하세요.'}), 400
     
     session_id = str(uuid.uuid4())
     sessions[session_id] = {
@@ -303,6 +310,6 @@ if __name__ == '__main__':
     print("🚀 Q-Methodology Web Application")
     print("="*60)
     print(f"\n   URL: http://localhost:8080")
-    print(f"   API Key: {'✅ 설정됨' if config.OPENAI_API_KEY else '❌ 미설정'}\n")
+    print(f"   API Key: {'✅ 설정됨' if (config.OPENAI_API_KEY or config.GOOGLE_API_KEY) else '❌ 미설정'}\n")
     
     app.run(host='0.0.0.0', port=8080, debug=True, use_reloader=False, threaded=True)

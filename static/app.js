@@ -17,7 +17,6 @@ class QMethodApp {
         this.resultSection = document.getElementById('result-section');
         this.errorSection = document.getElementById('error-section');
 
-        this.apiKeyInput = document.getElementById('api-key-input');
         this.topicInput = document.getElementById('topic-input');
         this.startBtn = document.getElementById('start-btn');
         this.restartBtn = document.getElementById('restart-btn');
@@ -47,14 +46,7 @@ class QMethodApp {
     }
 
     async startAnalysis() {
-        const apiKey = this.apiKeyInput.value.trim();
         const topic = this.topicInput.value.trim();
-
-        if (!apiKey) {
-            alert('OpenAI API Key를 입력해주세요.');
-            this.apiKeyInput.focus();
-            return;
-        }
 
         if (!topic) {
             alert('연구 주제를 입력해주세요.');
@@ -69,7 +61,7 @@ class QMethodApp {
             const response = await fetch('/api/start', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ topic, api_key: apiKey })
+                body: JSON.stringify({ topic })
             });
 
             const data = await response.json();
@@ -182,7 +174,7 @@ class QMethodApp {
 
         // Summary - compact with collapsible stats section
         this.resultSummary.innerHTML = `
-            <h3>📊 분석 결과 요약</h3>
+            <h3>분석 결과 요약</h3>
             <p><strong>연구 주제:</strong> ${result.topic_info?.final_topic || result.topic_info?.topic || 'N/A'}</p>
             <div class="summary-grid">
                 <div class="summary-item"><span class="summary-label">Q-Set 문항</span><span class="summary-value">${result.q_set?.length || 0}개</span></div>

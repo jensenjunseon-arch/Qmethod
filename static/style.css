@@ -1,22 +1,28 @@
 /* Q-Methodology Web App Styles */
 
 :root {
-    --primary: #6366f1;
-    --primary-dark: #4f46e5;
-    --primary-light: #818cf8;
-    --secondary: #0ea5e9;
-    --success: #10b981;
+    /* Ghost Green Theme */
+    --primary: #30cf43;
+    --primary-dark: #28b339;
+    --primary-light: #5ddb6c;
+    --secondary: #7c8b9a;
+    --success: #30cf43;
     --warning: #f59e0b;
     --error: #ef4444;
-    --bg-dark: #0f172a;
-    --bg-card: #1e293b;
-    --bg-card-hover: #334155;
-    --text-primary: #f8fafc;
-    --text-secondary: #94a3b8;
-    --border: #334155;
-    --gradient-1: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-    --gradient-2: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
-    --gradient-3: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+
+    /* Grey Palette */
+    --bg-dark: #15171a;
+    --bg-card: #1e2227;
+    --bg-card-hover: #2a2f36;
+    --text-primary: #ffffff;
+    --text-secondary: #7c8b9a;
+    --text-muted: #ced4d9;
+    --border: #2a2f36;
+
+    /* Ghost Green Gradients */
+    --gradient-1: linear-gradient(135deg, #30cf43 0%, #28b339 100%);
+    --gradient-2: linear-gradient(135deg, #30cf43 0%, #5ddb6c 100%);
+    --gradient-3: linear-gradient(135deg, #30cf43 0%, #7c8b9a 100%);
 }
 
 * {
@@ -134,7 +140,7 @@ input[type="password"]:focus,
 input[type="text"]:focus {
     outline: none;
     border-color: var(--primary);
-    box-shadow: 0 0 0 4px rgba(99, 102, 241, 0.2);
+    box-shadow: 0 0 0 4px rgba(48, 207, 67, 0.2);
 }
 
 .api-key-hint {
@@ -160,7 +166,7 @@ textarea {
 textarea:focus {
     outline: none;
     border-color: var(--primary);
-    box-shadow: 0 0 0 4px rgba(99, 102, 241, 0.2);
+    box-shadow: 0 0 0 4px rgba(48, 207, 67, 0.2);
 }
 
 textarea::placeholder {
@@ -191,7 +197,7 @@ textarea::placeholder {
 
 .btn-primary:hover {
     transform: translateY(-2px);
-    box-shadow: 0 10px 30px rgba(99, 102, 241, 0.4);
+    box-shadow: 0 10px 30px rgba(48, 207, 67, 0.4);
 }
 
 .btn-primary:disabled {
@@ -343,7 +349,9 @@ textarea::placeholder {
 
 /* Result */
 .result-summary {
-    background: var(--gradient-1);
+    background: var(--bg-card);
+    border: 2px solid var(--primary);
+    color: var(--text-primary);
     padding: 1.5rem;
     border-radius: 15px;
     margin-bottom: 2rem;
@@ -491,7 +499,7 @@ footer {
     font-style: italic;
     margin-top: 0.5rem;
     padding: 0.5rem;
-    background: rgba(99, 102, 241, 0.1);
+    background: rgba(48, 207, 67, 0.1);
     border-radius: 5px;
 }
 
@@ -679,7 +687,7 @@ details[open]>.accordion-trigger::before {
 }
 
 .nested-trigger:hover {
-    background: rgba(99, 102, 241, 0.2);
+    background: rgba(48, 207, 67, 0.2);
 }
 
 .nested-trigger::-webkit-details-marker {
@@ -738,7 +746,7 @@ details[open]>.nested-trigger::before {
 }
 
 .type-detail-btn:hover {
-    background: rgba(99, 102, 241, 0.2);
+    background: rgba(48, 207, 67, 0.2);
     border-color: var(--primary);
 }
 
