@@ -115,7 +115,7 @@ def generate_communication_scripts(
     best = match_info["best_match"]
     worst = match_info["worst_match"]
     
-    prompt = f"""당신은 조직 커뮤니케이션 전문가입니다.
+    prompt = f"""당신은 그룹 간 커뮤니케이션 전문가입니다.
 
 주제: {topic_info.get('final_topic', '')}
 Group A: {match_info.get('group_a', 'A')}
@@ -211,7 +211,7 @@ def analyze_dual_group_dynamics(
     group_a = topic_info.get("group_a", "Group A")
     group_b = topic_info.get("group_b", "Group B")
     
-    prompt = f"""당신은 조직 역학 전문가입니다.
+    prompt = f"""당신은 집단 심리와 상호작용 전문가입니다.
 
 {group_a}(6개 유형)와 {group_b}(6개 유형) 간의 상성 분석 결과:
 

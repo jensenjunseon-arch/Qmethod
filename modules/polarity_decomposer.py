@@ -296,7 +296,7 @@ def analyze_internal_conflict(types: List[Dict], topic_info: Dict) -> Dict:
         for t in types
     ])
     
-    prompt = f"""당신은 조직 심리학 전문가입니다.
+    prompt = f"""당신은 집단 심리 분석 전문가입니다.
 
 주제: {topic}
 집단: {group}
