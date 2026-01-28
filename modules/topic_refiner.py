@@ -90,7 +90,7 @@ def structure_final_topic(topic: str, context: str) -> dict:
         context: 전체 대화 맥락
     
     Returns:
-        구조화된 연구 주제 정보
+        구조화된 연구 주제 정보 (인구통계 제약 포함)
     """
     prompt = f"""
 다음 정보를 바탕으로 Q방법론 연구의 최종 주제를 구조화해주세요.
@@ -104,11 +104,25 @@ JSON 형식으로 다음 정보를 포함해주세요:
 {{
     "final_topic": "최종 확정된 연구 주제 (한 문장)",
     "research_question": "핵심 연구 질문",
-    "target_population": "연구 대상 집단",
+    "target_population": "연구 대상 집단 (텍스트 설명)",
     "context": "연구 맥락/상황",
     "expected_outcomes": "기대하는 결과/통찰",
-    "keywords": ["핵심", "키워드", "목록"]
+    "keywords": ["핵심", "키워드", "목록"],
+    "demographic_constraints": {{
+        "age_min": 연구 대상의 최소 연령 (숫자, 제약 없으면 null),
+        "age_max": 연구 대상의 최대 연령 (숫자, 제약 없으면 null),
+        "gender": "연구 대상 성별 (남성/여성/null - 제약 없으면 null)",
+        "occupation_types": ["직업군1", "직업군2"] 또는 null (제약 없으면 null),
+        "other_requirements": ["기타 필수조건1", "기타 필수조건2"] 또는 []
+    }}
 }}
+
+demographic_constraints 작성 시 주의사항:
+- "20대" → age_min: 20, age_max: 29
+- "MZ세대" → age_min: 20, age_max: 44 (1980-2005년생 기준)
+- "직장인" → occupation_types: ["사무직", "전문직", "기술직", "서비스직", "관리직"]
+- "대학생" → occupation_types: ["대학생", "대학원생"]
+- 성별 언급이 없으면 gender: null
 """
     return generate_json(prompt)
 
