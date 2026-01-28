@@ -88,37 +88,41 @@ def generate_all_personas(topic_info: dict, max_retries: int = 3) -> list[dict]:
         personas.append(persona)
         print(f"   ✅ {persona.get('name', f'페르소나{i+1}')} - {persona.get('brief_description', '')[:40]}...")
     
-    # 다양성 검증
+    # 다양성 검증 (임베딩 실패 시 건너뜀)
     print("\n🔍 페르소나 다양성 검증 중...")
     
-    for retry in range(max_retries):
-        embeddings = []
-        for p in personas:
-            # 페르소나 설명을 임베딩
-            desc = f"{p.get('personality_traits', [])} {p.get('values', [])} {p.get('attitude_toward_topic', '')}"
-            embeddings.append(generate_embedding(desc))
-        
-        is_diverse, violations = check_diversity(embeddings, config.PERSONA_SIMILARITY_THRESHOLD)
-        
-        if is_diverse:
-            print(f"✅ 다양성 검증 통과! (모든 페르소나 쌍의 유사도 < {config.PERSONA_SIMILARITY_THRESHOLD})")
-            break
-        else:
-            print(f"⚠️  다양성 미달: {len(violations)}개 쌍이 임계값 초과")
+    try:
+        for retry in range(max_retries):
+            embeddings = []
+            for p in personas:
+                # 페르소나 설명을 임베딩
+                desc = f"{p.get('personality_traits', [])} {p.get('values', [])} {p.get('attitude_toward_topic', '')}"
+                embeddings.append(generate_embedding(desc))
             
-            if retry < max_retries - 1:
-                # 가장 유사한 쌍 중 하나 재생성
-                violations.sort(key=lambda x: x[2], reverse=True)
-                idx_to_replace = violations[0][1]  # 두 번째 인덱스 교체
+            is_diverse, violations = check_diversity(embeddings, config.PERSONA_SIMILARITY_THRESHOLD)
+            
+            if is_diverse:
+                print(f"✅ 다양성 검증 통과! (모든 페르소나 쌍의 유사도 < {config.PERSONA_SIMILARITY_THRESHOLD})")
+                break
+            else:
+                print(f"⚠️  다양성 미달: {len(violations)}개 쌍이 임계값 초과")
                 
-                print(f"   🔄 페르소나 {idx_to_replace + 1} 재생성 중...")
-                new_persona = generate_single_persona(
-                    topic_info, 
-                    idx_to_replace, 
-                    [p for i, p in enumerate(personas) if i != idx_to_replace]
-                )
-                personas[idx_to_replace] = new_persona
-                print(f"   ✅ {new_persona.get('name', f'페르소나{idx_to_replace+1}')} - {new_persona.get('brief_description', '')[:40]}...")
+                if retry < max_retries - 1:
+                    # 가장 유사한 쌍 중 하나 재생성
+                    violations.sort(key=lambda x: x[2], reverse=True)
+                    idx_to_replace = violations[0][1]  # 두 번째 인덱스 교체
+                    
+                    print(f"   🔄 페르소나 {idx_to_replace + 1} 재생성 중...")
+                    new_persona = generate_single_persona(
+                        topic_info, 
+                        idx_to_replace, 
+                        [p for i, p in enumerate(personas) if i != idx_to_replace]
+                    )
+                    personas[idx_to_replace] = new_persona
+                    print(f"   ✅ {new_persona.get('name', f'페르소나{idx_to_replace+1}')} - {new_persona.get('brief_description', '')[:40]}...")
+    except Exception as e:
+        print(f"⚠️  다양성 검증 건너뜀 (임베딩 에러): {str(e)[:100]}")
+        # 다양성 검증 실패해도 20명의 페르소나는 정상 반환
     
     return personas
 
