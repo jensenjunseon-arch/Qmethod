@@ -5,6 +5,8 @@ Flask 기반 웹 인터페이스
 """
 import sys
 import os
+from dotenv import load_dotenv
+load_dotenv()  # .env 파일에서 환경변수 로드
 import json
 import threading
 import uuid
