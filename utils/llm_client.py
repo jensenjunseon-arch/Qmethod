@@ -183,7 +183,7 @@ def generate_embedding_gemini(text: str) -> list[float]:
     """Gemini 임베딩 생성"""
     genai = get_gemini_client()
     result = genai.embed_content(
-        model="models/text-embedding-005",
+        model="models/gemini-embedding-exp-03-07",
         content=text
     )
     return result['embedding']
