@@ -8,6 +8,7 @@ sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 import numpy as np
 import pandas as pd
+import concurrent.futures
 from utils.llm_client import generate_json
 import config
 
@@ -172,24 +173,43 @@ def simulate_all_sortings(
     print("📊 Q-Sorting 시뮬레이션")
     print("="*60)
     
-    all_sortings = []
+    all_sortings_dict = {}
     
-    for i, persona in enumerate(personas):
+    def _simulate_q_sorting(i, persona):
         print(f"\n🎯 {persona.get('name', f'페르소나{i+1}')} Q-Sorting 중... ({i+1}/{len(personas)})")
         
-        # 분류 시뮬레이션
-        sorting = simulate_single_sorting(persona, q_set, topic_info)
-        
-        # 강제 분포 검증 및 조정
-        sorting = validate_and_adjust_sorting(sorting)
-        
-        # 리스트 형태로 변환 (1-indexed에서 0-indexed로)
-        row = [sorting.get(j+1, 0) for j in range(len(q_set))]
-        all_sortings.append(row)
-        
-        # 분포 확인
-        score_counts = {s: row.count(s) for s in sorted(config.FORCED_DISTRIBUTION.keys())}
-        print(f"   분포: {score_counts}")
+        try:
+            # 분류 시뮬레이션
+            sorting = simulate_single_sorting(persona, q_set, topic_info)
+            
+            # 강제 분포 검증 및 조정
+            sorting = validate_and_adjust_sorting(sorting)
+            
+            # 리스트 형태로 변환 (1-indexed에서 0-indexed로)
+            row = [sorting.get(j+1, 0) for j in range(len(q_set))]
+            
+            # 분포 확인
+            score_counts = {s: row.count(s) for s in sorted(config.FORCED_DISTRIBUTION.keys())}
+            print(f"   {persona.get('name', f'페르소나{i+1}')} 분포: {score_counts}")
+            
+            return i, row
+        except Exception as e:
+            print(f"   ❌ {persona.get('name', f'페르소나{i+1}')} Q-Sorting 에러: {e}")
+            # 에러 발생 시 모두 0으로 처리 (validate_and_adjust_sorting에서 처리하도록 할 수도 있지만 안전하게)
+            safe_sorting = validate_and_adjust_sorting({})
+            row = [safe_sorting.get(j+1, 0) for j in range(len(q_set))]
+            return i, row
+
+    with concurrent.futures.ThreadPoolExecutor(max_workers=min(10, len(personas))) as executor:
+        futures = [executor.submit(_simulate_q_sorting, i, persona) for i, persona in enumerate(personas)]
+        for future in concurrent.futures.as_completed(futures):
+            try:
+                i, row = future.result()
+                all_sortings_dict[i] = row
+            except Exception as e:
+                print(f"   ❌ 결과 수신 에러: {e}")
+                
+    all_sortings = [all_sortings_dict[i] for i in range(len(personas))]
     
     # DataFrame 생성
     columns = [f"Q{i+1}" for i in range(len(q_set))]

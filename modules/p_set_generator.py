@@ -11,6 +11,7 @@ from utils.similarity import check_diversity, calculate_embedding_similarity_mat
 import config
 import numpy as np
 import random
+import concurrent.futures
 
 
 def generate_demographic_slots(constraints: dict, count: int = 20) -> list[dict]:
@@ -215,13 +216,12 @@ def generate_all_personas(topic_info: dict, max_retries: int = 3) -> list[dict]:
     if constraints.get('occupation_types'):
         print(f"   직업군: {', '.join(constraints['occupation_types'])}")
     
-    personas = []
+    personas = [None] * config.P_SET_SIZE
     
-    for i in range(config.P_SET_SIZE):
-        slot = slots[i]
+    def _generate_and_validate(i, slot):
         print(f"\n🧑 페르소나 {i+1}/{config.P_SET_SIZE} 생성 중... [{slot['age_range']}, {slot['gender']}]")
-        
-        persona = generate_single_persona(topic_info, i, personas, demographic_slot=slot)
+        # 기존 페르소나 목록(existing_personas)을 빈 리스트로 넘겨 독립적으로 생성
+        persona = generate_single_persona(topic_info, i, [], demographic_slot=slot)
         
         # 제약 준수 검증
         is_valid, issues = validate_persona_constraints(persona, slot, constraints)
@@ -230,15 +230,30 @@ def generate_all_personas(topic_info: dict, max_retries: int = 3) -> list[dict]:
             # 재시도 (최대 2회)
             for retry in range(2):
                 print(f"   🔄 재생성 시도 {retry + 1}...")
-                persona = generate_single_persona(topic_info, i, personas, demographic_slot=slot)
+                persona = generate_single_persona(topic_info, i, [], demographic_slot=slot)
                 is_valid, issues = validate_persona_constraints(persona, slot, constraints)
                 if is_valid:
                     break
             if not is_valid:
                 print(f"   ⚠️ 재시도 후에도 제약 위반. 계속 진행합니다.")
         
-        personas.append(persona)
         print(f"   ✅ {persona.get('name', f'페르소나{i+1}')} ({persona.get('age')}세 {persona.get('gender')}) - {persona.get('brief_description', '')[:40]}...")
+        return i, persona
+
+    with concurrent.futures.ThreadPoolExecutor(max_workers=min(10, config.P_SET_SIZE)) as executor:
+        futures = [executor.submit(_generate_and_validate, i, slots[i]) for i in range(config.P_SET_SIZE)]
+        for future in concurrent.futures.as_completed(futures):
+            try:
+                idx, persona = future.result()
+                personas[idx] = persona
+            except Exception as e:
+                print(f"   ❌ 페르소나 생성 중 에러 발생: {e}")
+                # 실패 시 기본 객체 할당
+                idx_error = futures.index(future) # 순서가 섞일 수 있으므로 정확하지 않을 수 있지만 fallback 용도
+                personas[idx_error] = {"name": f"에러_P{idx_error}", "age": 30, "gender": "여성"}
+    
+    # None 필터링 (에러 fallback이 idx를 정확히 못잡았을 경우 대비)
+    personas = [p for p in personas if p is not None]
     
     # 다양성 검증 (임베딩 실패 시 건너뜀)
     print("\n🔍 페르소나 다양성 검증 중...")
