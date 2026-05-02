@@ -139,10 +139,17 @@ JSON 형식: {{"statements": ["문항1", "문항2", ..., "문항{config.Q_POPULA
 """
     
     result = generate_json(prompt, temperature=0.8)
-    statements = result.get("statements", [])
+    statements = result.get("statements", result.get("items", []))
+    if not statements and isinstance(result, dict):
+        for v in result.values():
+            if isinstance(v, list):
+                statements = v
+                break
     
     # 100개 미만이면 추가 생성
-    while len(statements) < config.Q_POPULATION_SIZE:
+    retry_count = 0
+    while len(statements) < config.Q_POPULATION_SIZE and retry_count < 5:
+        retry_count += 1
         additional_prompt = f"""
 기존에 생성된 {len(statements)}개의 문항에 추가로 {config.Q_POPULATION_SIZE - len(statements)}개의 문항을 더 생성해주세요.
 주제: {final_topic}
@@ -152,7 +159,13 @@ JSON 형식: {{"statements": ["문항1", "문항2", ..., "문항{config.Q_POPULA
 JSON 형식: {{"statements": ["추가문항1", ...]}}
 """
         additional = generate_json(additional_prompt, temperature=0.9)
-        statements.extend(additional.get("statements", []))
+        new_stmts = additional.get("statements", additional.get("items", []))
+        if not new_stmts and isinstance(additional, dict):
+            for v in additional.values():
+                if isinstance(v, list):
+                    new_stmts = v
+                    break
+        statements.extend(new_stmts)
     
     return statements[:config.Q_POPULATION_SIZE]
 
