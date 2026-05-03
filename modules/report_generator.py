@@ -139,48 +139,37 @@ def generate_report(
 | 기반 요인 | {t.get('factor', 'N/A')} |
 | 편향 방향 | {bias_label} |
 
-#### 📖 심리 분석
-{t.get('psychology_analysis', 'N/A')}
-
 #### 🎯 핵심 가치
 {', '.join(t.get('core_values', ['N/A']))}
 
-#### 📋 행동 패턴
+#### 🧬 생존 본능 (Survival Instinct)
+{t.get('survival_instinct', 'N/A')}
+
+#### 🛡️ 방어 기제 (Defense Mechanism)
+{t.get('defense_mechanism', 'N/A')}
+
+#### 😰 숨겨진 두려움 (Hidden Fear)
+{t.get('hidden_fear', 'N/A')}
+
+#### 💭 자기 정당화 (Self-Justification)
+{t.get('self_justification', 'N/A')}
 """)
-        for pattern in t.get('behavioral_patterns', []):
-            report.append(f"- {pattern}")
+        
+        # 트리거 표현
+        if t.get('trigger_phrases'):
+            report.append("#### ⚡ 트리거 표현")
+            for phrase in t.get('trigger_phrases', []):
+                report.append(f'- "{phrase}"')
+        
+        # 행동 지침
+        if t.get('action_plan'):
+            report.append("\n#### 📌 행동 지침 (Action Plan)")
+            for action in t.get('action_plan', []):
+                report.append(f"1. {action}")
         
         report.append(f"""
 
-#### 💪 강점
-""")
-        for strength in t.get('strengths', []):
-            report.append(f"- {strength}")
-        
-        report.append(f"""
-
-#### ⚠️ 도전 과제
-""")
-        for challenge in t.get('challenges', []):
-            report.append(f"- {challenge}")
-        
-        report.append(f"""
-
-#### 💡 실용적 조언
-""")
-        for advice in t.get('practical_advice', []):
-            report.append(f"1. {advice}")
-        
-        report.append(f"""
-
-#### 🚀 권장 행동
-""")
-        for action in t.get('recommended_actions', []):
-            report.append(f"- {action}")
-        
-        report.append(f"""
-
-#### 📌 핵심 문항
+#### 📊 핵심 문항
 {statements_text}
 
 ---

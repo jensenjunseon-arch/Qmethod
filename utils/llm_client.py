@@ -92,29 +92,27 @@ def generate_embedding_openai(text: str) -> list[float]:
     return response.data[0].embedding
 
 
-# ============== Google Gemini ==============
+# ============== Google Gemini (New google-genai SDK) ==============
 def get_gemini_client():
-    """Gemini 클라이언트를 초기화합니다."""
-    import google.generativeai as genai
+    """Gemini 클라이언트를 초기화합니다. (google-genai SDK)"""
+    from google import genai
     if not config.GOOGLE_API_KEY:
         raise ValueError("GOOGLE_API_KEY 환경변수가 설정되지 않았습니다.")
-    genai.configure(api_key=config.GOOGLE_API_KEY)
-    return genai
+    return genai.Client(api_key=config.GOOGLE_API_KEY)
 
 
 def generate_text_gemini(prompt: str, system_prompt: str, temperature: float, max_retries: int) -> str:
-    genai = get_gemini_client()
-    model = genai.GenerativeModel(
-        model_name=config.GEMINI_MODEL,
-        system_instruction=system_prompt
-    )
+    client = get_gemini_client()
+    from google.genai import types
     
     for attempt in range(max_retries):
         try:
-            response = model.generate_content(
-                prompt,
-                generation_config=genai.types.GenerationConfig(
-                    temperature=temperature
+            response = client.models.generate_content(
+                model=config.GEMINI_MODEL,
+                contents=prompt,
+                config=types.GenerateContentConfig(
+                    temperature=temperature,
+                    system_instruction=system_prompt
                 )
             )
             return response.text.strip()
@@ -127,18 +125,17 @@ def generate_text_gemini(prompt: str, system_prompt: str, temperature: float, ma
 
 
 def generate_json_gemini(prompt: str, system_prompt: str, temperature: float, max_retries: int) -> dict:
-    genai = get_gemini_client()
-    model = genai.GenerativeModel(
-        model_name=config.GEMINI_MODEL,
-        system_instruction=system_prompt + "\n\n반드시 유효한 JSON 형식으로만 응답하세요. 다른 텍스트 없이 JSON만 출력하세요."
-    )
+    client = get_gemini_client()
+    from google.genai import types
     
     for attempt in range(max_retries):
         try:
-            response = model.generate_content(
-                prompt,
-                generation_config=genai.types.GenerationConfig(
+            response = client.models.generate_content(
+                model=config.GEMINI_MODEL,
+                contents=prompt,
+                config=types.GenerateContentConfig(
                     temperature=temperature,
+                    system_instruction=system_prompt + "\n\n반드시 유효한 JSON 형식으로만 응답하세요. 다른 텍스트 없이 JSON만 출력하세요.",
                     response_mime_type="application/json"
                 )
             )
@@ -180,13 +177,13 @@ def generate_json_gemini(prompt: str, system_prompt: str, temperature: float, ma
 
 
 def generate_embedding_gemini(text: str) -> list[float]:
-    """Gemini 임베딩 생성"""
-    genai = get_gemini_client()
-    result = genai.embed_content(
-        model="models/gemini-embedding-exp-03-07",
-        content=text
+    """Gemini 임베딩 생성 (text-embedding-004 모델 사용)"""
+    client = get_gemini_client()
+    result = client.models.embed_content(
+        model="text-embedding-004",
+        contents=text
     )
-    return result['embedding']
+    return result.embeddings[0].values
 
 
 # ============== Unified Interface ==============

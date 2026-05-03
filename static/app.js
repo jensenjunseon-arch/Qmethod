@@ -6,6 +6,8 @@ class QMethodApp {
         this.pollInterval = null;
         this.startTime = null;
         this.timerInterval = null;
+        this.consecutiveErrors = 0;
+        this.maxConsecutiveErrors = 15;
 
         this.initElements();
         this.bindEvents();
@@ -112,11 +114,19 @@ class QMethodApp {
     async checkStatus() {
         try {
             const response = await fetch(`/api/status/${this.sessionId}`);
+            
+            if (!response.ok) {
+                throw new Error(`서버 응답 오류 (${response.status})`);
+            }
+            
             const data = await response.json();
 
             if (data.error) {
                 throw new Error(data.error);
             }
+
+            // 성공 시 에러 카운터 초기화
+            this.consecutiveErrors = 0;
 
             this.updateProgress(data);
 
@@ -129,7 +139,13 @@ class QMethodApp {
             }
 
         } catch (error) {
-            console.error('Status check failed:', error);
+            this.consecutiveErrors++;
+            console.error(`Status check failed (${this.consecutiveErrors}/${this.maxConsecutiveErrors}):`, error);
+            
+            if (this.consecutiveErrors >= this.maxConsecutiveErrors) {
+                this.stopPolling();
+                this.showError('서버와의 연결이 끊어졌습니다. 서버가 절전 모드에 들어갔거나 네트워크 문제가 발생했을 수 있습니다. 페이지를 새로고침한 후 다시 시도해주세요.');
+            }
         }
     }
 
@@ -370,6 +386,7 @@ class QMethodApp {
         this.stopPolling();
         this.sessionId = null;
         this.startTime = null;
+        this.consecutiveErrors = 0;
         this.topicInput.value = '';
         this.startBtn.disabled = false;
         this.startBtn.innerHTML = '<span class="btn-icon">🚀</span> 분석 시작';

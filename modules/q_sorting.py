@@ -10,6 +10,7 @@ import numpy as np
 import pandas as pd
 import concurrent.futures
 from utils.llm_client import generate_json
+from modules.validation import flatline_check
 import config
 
 
@@ -179,11 +180,20 @@ def simulate_all_sortings(
         print(f"\n🎯 {persona.get('name', f'페르소나{i+1}')} Q-Sorting 중... ({i+1}/{len(personas)})")
         
         try:
-            # 분류 시뮬레이션
-            sorting = simulate_single_sorting(persona, q_set, topic_info)
-            
-            # 강제 분포 검증 및 조정
-            sorting = validate_and_adjust_sorting(sorting)
+            # 분류 시뮬레이션 (최대 3회 시도 - flat-lining 검증 포함)
+            max_attempts = 3
+            for attempt in range(max_attempts):
+                sorting = simulate_single_sorting(persona, q_set, topic_info)
+                sorting = validate_and_adjust_sorting(sorting)
+                
+                # Flat-lining 검증: 응답이 중립에 많이 몰리는지 검사
+                is_valid, stats = flatline_check(sorting, min_std=1.5)
+                if is_valid:
+                    break
+                elif attempt < max_attempts - 1:
+                    print(f"   ⚠️ Flat-lining 감지 (SD={stats.get('std', 0):.2f}), 재시도 {attempt+2}/{max_attempts}")
+                else:
+                    print(f"   ⚠️ Flat-lining 지속되나 계속 진행 (SD={stats.get('std', 0):.2f})")
             
             # 리스트 형태로 변환 (1-indexed에서 0-indexed로)
             row = [sorting.get(j+1, 0) for j in range(len(q_set))]
@@ -195,7 +205,6 @@ def simulate_all_sortings(
             return i, row
         except Exception as e:
             print(f"   ❌ {persona.get('name', f'페르소나{i+1}')} Q-Sorting 에러: {e}")
-            # 에러 발생 시 모두 0으로 처리 (validate_and_adjust_sorting에서 처리하도록 할 수도 있지만 안전하게)
             safe_sorting = validate_and_adjust_sorting({})
             row = [safe_sorting.get(j+1, 0) for j in range(len(q_set))]
             return i, row

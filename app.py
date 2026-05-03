@@ -10,6 +10,7 @@ load_dotenv()  # .env 파일에서 환경변수 로드
 import json
 import threading
 import uuid
+import time
 from datetime import datetime
 from flask import Flask, render_template, request, jsonify, Response
 import queue
@@ -27,8 +28,20 @@ from modules.report_generator import generate_report, save_data_artifacts
 
 app = Flask(__name__, template_folder='templates', static_folder='static')
 
-# 세션별 진행 상태 저장
+# 세션별 진행 상태 저장 (TTL 기반 정리)
 sessions = {}
+SESSION_TTL_SECONDS = 1800  # 30분
+
+
+def _cleanup_expired_sessions():
+    """만료된 세션을 메모리에서 제거합니다."""
+    now = time.time()
+    expired = [sid for sid, s in sessions.items()
+               if now - s.get('created_at', now) > SESSION_TTL_SECONDS]
+    for sid in expired:
+        del sessions[sid]
+    if expired:
+        print(f"[CLEANUP] {len(expired)}개 만료 세션 제거 (남은 세션: {len(sessions)}개)", flush=True)
 
 
 def _get_factor_scores_summary(factor_scores_df, q_set, top_n=5):
@@ -126,6 +139,9 @@ def start_analysis():
     if not api_key:
         return jsonify({'error': '서버에 API Key가 설정되어 있지 않습니다. 관리자에게 문의하세요.'}), 400
     
+    # 만료된 세션 정리
+    _cleanup_expired_sessions()
+    
     session_id = str(uuid.uuid4())
     sessions[session_id] = {
         'status': 'started',
@@ -134,7 +150,8 @@ def start_analysis():
         'progress': 0,
         'current_step': '시작',
         'logs': [],
-        'result': None
+        'result': None,
+        'created_at': time.time()
     }
     
     # 백그라운드에서 분석 실행
@@ -152,26 +169,21 @@ def run_analysis_background(session_id: str, topic: str, api_key: str):
     import sys
     print(f"\n[THREAD] 백그라운드 스레드 시작: {session_id}", flush=True)
     print(f"[THREAD] 주제: {topic[:50]}...", flush=True)
-    print(f"[THREAD] API Key: {api_key[:10]}...", flush=True)
+    print(f"[THREAD] API Key: {'서버 설정 사용' if not api_key else api_key[:10] + '...'}", flush=True)
     sys.stdout.flush()
     
-    # Auto-detect API key type and set appropriate config
-    if api_key.startswith("AIza"):
-        # Google Gemini API key
-        config.GOOGLE_API_KEY = api_key
-        config.OPENAI_API_KEY = ""
-        config.LLM_PROVIDER = "gemini"
-        print(f"[THREAD] LLM Provider: Gemini (자동 감지)", flush=True)
-    elif api_key.startswith("sk-"):
-        # OpenAI API key
-        config.OPENAI_API_KEY = api_key
-        config.GOOGLE_API_KEY = ""
-        config.LLM_PROVIDER = "openai"
-        print(f"[THREAD] LLM Provider: OpenAI (자동 감지)", flush=True)
-    else:
-        # Unknown format - try as OpenAI
-        config.OPENAI_API_KEY = api_key
-        print(f"[THREAD] LLM Provider: OpenAI (기본값)", flush=True)
+    # API 키가 직접 전달된 경우에만 config 업데이트 (서버 시작 시 .env에서 이미 로드됨)
+    # 주의: --workers 1 환경에서만 안전. 멀티 워커 시 thread-local 사용 필요
+    if api_key and api_key != config.GOOGLE_API_KEY and api_key != config.OPENAI_API_KEY:
+        if api_key.startswith("AIza"):
+            config.GOOGLE_API_KEY = api_key
+            config.LLM_PROVIDER = "gemini"
+        elif api_key.startswith("sk-"):
+            config.OPENAI_API_KEY = api_key
+            config.LLM_PROVIDER = "openai"
+    
+    provider = config.LLM_PROVIDER if config.LLM_PROVIDER != "auto" else ("gemini" if config.GOOGLE_API_KEY else "openai")
+    print(f"[THREAD] LLM Provider: {provider}", flush=True)
     
     session = sessions[session_id]
     
