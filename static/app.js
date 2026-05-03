@@ -556,7 +556,7 @@ class QMethodApp {
         this.topicInput.value = '';
         this.startBtn.disabled = false;
         const t = this.translations[this.currentLang];
-        this.startBtn.innerHTML = `<span class="btn-icon">🚀</span> ${t['start_btn']}`;
+        this.startBtn.innerHTML = `${t['start_btn']}`;
         this.progressFill.style.width = '0%';
         this.progressText.textContent = '0%';
         this.stepText.textContent = t['result_preparing'];
