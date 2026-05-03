@@ -11,6 +11,7 @@ import pandas as pd
 import concurrent.futures
 from utils.llm_client import generate_json
 from modules.validation import flatline_check
+from utils.localization import get_cultural_context
 import config
 
 
@@ -43,6 +44,9 @@ def simulate_single_sorting(
     Returns:
         {문항_인덱스: 점수} 딕셔너리
     """
+    language = topic_info.get("language", "ko")
+    cul_ctx = get_cultural_context(language)
+    
     statements_text = "\n".join([f"{i+1}. {s}" for i, s in enumerate(q_set)])
     distribution_desc = ", ".join([f"{score}점: {count}개" for score, count in sorted(config.FORCED_DISTRIBUTION.items())])
     
@@ -73,6 +77,7 @@ def simulate_single_sorting(
 1. 이 페르소나의 성격, 가치관, 태도를 고려하여 각 문항에 대한 동의/비동의 정도를 판단합니다.
 2. 강제 분포 규칙을 정확히 따라야 합니다 (각 점수별 문항 수 준수).
 3. 페르소나의 관점에서 일관성 있게 분류합니다.
+4. 반드시 {cul_ctx['report_language']} 언어로 이유(reasoning)를 작성하세요.
 
 JSON 형식으로 응답해주세요:
 {{
@@ -86,7 +91,7 @@ JSON 형식으로 응답해주세요:
 }}
 """
     
-    result = generate_json(prompt, temperature=0.6)
+    result = generate_json(prompt, system_prompt=cul_ctx["system_prompt"], temperature=0.6)
     sorting = result.get("sorting", {})
     
     # 문자열 키를 정수로 변환하고, 값도 정수로 변환 (None 값은 0으로 처리)

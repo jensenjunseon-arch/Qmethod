@@ -9,6 +9,7 @@ sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 import pandas as pd
 import numpy as np
 from utils.llm_client import generate_json
+from utils.localization import get_cultural_context
 from modules.factor_analysis import get_factor_interpretation_data
 
 
@@ -99,7 +100,10 @@ def generate_type(
     Returns:
         생성된 유형 정보
     """
-    bias_label = "긍정 편향" if bias == "positive" else "부정 편향"
+    language = topic_info.get("language", "ko")
+    cul_ctx = get_cultural_context(language)
+    
+    bias_label = "긍정 편향(Positive)" if bias == "positive" else "부정 편향(Negative)"
     
     items_text = "\n".join([
         f"- {item['statement']} (Z-score: {item['z_score']:.2f})"
@@ -108,8 +112,8 @@ def generate_type(
     
     participants_text = ""
     if significant_participants:
-        participants_text = "대표 참여자: " + ", ".join([
-            f"{p['name']} (적재량: {p['loading']:.2f})"
+        participants_text = "대표 참여자(Representative Participants): " + ", ".join([
+            f"{p['name']} (적재량/Loading: {p['loading']:.2f})"
             for p in significant_participants[:3]
         ])
     
@@ -132,15 +136,15 @@ Q방법론 연구에서 도출된 유형을 분석하고 설명해주세요.
 2. **형식**: "정식 이름 (Raw Voice)"
    - 정식 이름: 학술적이고 전문적인 명칭 (4~8자)
    - Raw Voice: 그 유형 사람이 실제로 할 법한 한마디 (5~15자)
-3. **예시**:
-   - "냉소적 생존주의자 (결국 살아남는 게 이기는 거야)"
-   - "열정적 가치추구형 (내 신념은 타협 못 해)"
-   - "무관심 방관자 (남 일에 감정 쏟지 마)"
-   - "현실주의 적응가 (안 맞아도 맞춰야지 뭐)"
+
+[로컬라이제이션 가이드]
+{cul_ctx['system_prompt']}
+반드시 **{cul_ctx['report_language']}** 언어로 모든 답변을 작성하세요.
 
 ## 요청사항
 이 유형의 특성을 심층 분석하여 다음 정보를 JSON으로 제공해주세요.
 특히 '생존 본능', '방어 기제', '숨겨진 두려움', '자기 정당화' 부분은 날것 그대로의 심리를 파헤쳐주세요.
+JSON 키는 영어 그대로 두되, 내용은 반드시 {cul_ctx['report_language']} 언어로 채워야 합니다.
 
 {{
     "type_name": "정식 이름 (Raw Voice 한마디)",
@@ -149,13 +153,13 @@ Q방법론 연구에서 도출된 유형을 분석하고 설명해주세요.
     "defense_mechanism": "이 유형이 사용하는 심리적 방어 기제. 어떤 상황에서 어떻게 자신을 보호하는지 (50자 이상)",
     "hidden_fear": "이 유형이 겉으로 드러내지 않지만 내면에 가진 두려움과 불안 (50자 이상)",
     "self_justification": "이 유형이 자신의 태도와 행동을 정당화하는 내면의 논리와 말투 (50자 이상)",
-    "core_values": ["핵심가치1", "핵심가치2", "핵심가3"],
+    "core_values": ["핵심가치1", "핵심가치2", "핵심가치3"],
     "trigger_phrases": ["이 유형을 자극하는 말1", "자극하는 말2", "자극하는 말3"],
     "action_plan": ["이 유형에게 효과적인 접근법1", "접근법2", "접근법3"]
 }}
 """
     
-    return generate_json(prompt, temperature=0.7)
+    return generate_json(prompt, system_prompt=cul_ctx["system_prompt"], temperature=0.7)
 
 
 def create_type_summary(types: list[dict]) -> str:

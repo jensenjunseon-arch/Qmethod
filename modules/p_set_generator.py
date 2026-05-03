@@ -14,7 +14,7 @@ import random
 import concurrent.futures
 
 
-def generate_demographic_slots(constraints: dict, count: int = 20) -> list[dict]:
+def generate_demographic_slots(constraints: dict, count: int = 20, language: str = 'ko') -> list[dict]:
     """
     제약조건 내에서 인구통계 슬롯을 균등 분배로 생성합니다.
     
@@ -51,8 +51,11 @@ def generate_demographic_slots(constraints: dict, count: int = 20) -> list[dict]
     if gender_constraint:
         genders = [gender_constraint] * count
     else:
-        # 남녀 균등 분배
-        genders = ['남성'] * (count // 2) + ['여성'] * (count - count // 2)
+        # 남녀 균등 분배 (언어에 맞는 라벨)
+        if language == 'en':
+            genders = ['Male'] * (count // 2) + ['Female'] * (count - count // 2)
+        else:
+            genders = ['남성'] * (count // 2) + ['여성'] * (count - count // 2)
         random.shuffle(genders)
     
     # 직업군 설정
@@ -146,6 +149,9 @@ def generate_single_persona(topic_info: dict, persona_index: int, existing_perso
         if demographic_slot.get('occupation_hint'):
             demographic_instruction += f"- 직업군 힌트: {demographic_slot['occupation_hint']} (이 분야 관련 직업 선택)\n"
     
+    language = topic_info.get("language", "ko")
+    cul_ctx = get_cultural_context(language)
+    
     prompt = f"""
 Q방법론 연구를 위한 가상 참여자 페르소나를 생성해주세요.
 
@@ -156,6 +162,10 @@ Q방법론 연구를 위한 가상 참여자 페르소나를 생성해주세요.
 페르소나 번호: {persona_index + 1}/{config.P_SET_SIZE}
 {demographic_instruction}
 {existing_desc}
+
+[로컬라이제이션 가이드]
+{cul_ctx['persona_rules']}
+언어: 반드시 {cul_ctx['report_language']} 언어로 작성하세요.
 
 다음 조건을 충족하는 새로운 페르소나를 생성해주세요:
 1. 위의 인구통계 필수 조건을 반드시 따라야 합니다.
@@ -179,7 +189,7 @@ JSON 형식으로 응답해주세요:
     "social_orientation": "사회적 성향 (개인주의/집단주의 등)"
 }}
 """
-    return generate_json(prompt, temperature=0.9)
+    return generate_json(prompt, system_prompt=cul_ctx["system_prompt"], temperature=0.9)
 
 
 def generate_all_personas(topic_info: dict, max_retries: int = 3) -> list[dict]:
@@ -199,7 +209,8 @@ def generate_all_personas(topic_info: dict, max_retries: int = 3) -> list[dict]:
     
     # 인구통계 제약 추출 및 슬롯 생성
     constraints = topic_info.get('demographic_constraints', {}) or {}
-    slots = generate_demographic_slots(constraints, config.P_SET_SIZE)
+    language = topic_info.get('language', 'ko')
+    slots = generate_demographic_slots(constraints, config.P_SET_SIZE, language)
     
     # 슬롯 분포 출력
     print(f"\n📊 인구통계 슬롯 분포:")
@@ -240,17 +251,53 @@ def generate_all_personas(topic_info: dict, max_retries: int = 3) -> list[dict]:
         print(f"   ✅ {persona.get('name', f'페르소나{i+1}')} ({persona.get('age')}세 {persona.get('gender')}) - {persona.get('brief_description', '')[:40]}...")
         return i, persona
 
+    # future → index 매핑 딕셔너리 생성
+    future_to_index = {}
     with concurrent.futures.ThreadPoolExecutor(max_workers=min(10, config.P_SET_SIZE)) as executor:
-        futures = [executor.submit(_generate_and_validate, i, slots[i]) for i in range(config.P_SET_SIZE)]
-        for future in concurrent.futures.as_completed(futures):
+        for i in range(config.P_SET_SIZE):
+            future = executor.submit(_generate_and_validate, i, slots[i])
+            future_to_index[future] = i
+        
+        for future in concurrent.futures.as_completed(future_to_index):
+            idx_fallback = future_to_index[future]
             try:
                 idx, persona = future.result()
                 personas[idx] = persona
             except Exception as e:
-                print(f"   ❌ 페르소나 생성 중 에러 발생: {e}")
-                # 실패 시 기본 객체 할당
-                idx_error = futures.index(future) # 순서가 섞일 수 있으므로 정확하지 않을 수 있지만 fallback 용도
-                personas[idx_error] = {"name": f"에러_P{idx_error}", "age": 30, "gender": "여성"}
+                print(f"   ❌ 페르소나 {idx_fallback+1} 생성 중 에러 발생: {e}")
+                # 실패 시 언어 기반 최소 인격 fallback 객체 할당
+                language = topic_info.get("language", "ko")
+                slot = slots[idx_fallback]
+                if language == "en":
+                    fallback_names = ["Alex", "Jordan", "Sam", "Casey", "Morgan", "Taylor", "Riley", "Quinn", "Avery", "Drew",
+                                      "Jamie", "Charlie", "Skyler", "Reese", "Sage", "Blake", "Rowan", "Ellis", "Finley", "Emery"]
+                    personas[idx_fallback] = {
+                        "name": fallback_names[idx_fallback % len(fallback_names)],
+                        "age": random.randint(slot['age_min'], slot['age_max']),
+                        "gender": slot['gender'],
+                        "occupation": "Office Worker",
+                        "personality_traits": ["adaptable", "pragmatic", "reserved"],
+                        "values": ["stability", "fairness"],
+                        "attitude_toward_topic": "Has a moderate, balanced view on the topic.",
+                        "brief_description": "A typical respondent with balanced perspectives.",
+                        "decision_making_style": "deliberate",
+                        "social_orientation": "moderate"
+                    }
+                else:
+                    fallback_names = ["김민수", "이지영", "박서준", "최유진", "정하준", "강수빈", "윤도현", "한소희", "오태민", "신예진",
+                                      "임준혁", "배지현", "조영호", "류서연", "권대한", "문하은", "서진우", "황수아", "송민재", "양예린"]
+                    personas[idx_fallback] = {
+                        "name": fallback_names[idx_fallback % len(fallback_names)],
+                        "age": random.randint(slot['age_min'], slot['age_max']),
+                        "gender": slot['gender'],
+                        "occupation": "회사원",
+                        "personality_traits": ["적응력 있는", "현실적인", "신중한"],
+                        "values": ["안정", "공정성"],
+                        "attitude_toward_topic": "주제에 대해 중립적이고 균형 잡힌 시각을 가지고 있다.",
+                        "brief_description": "균형 잡힌 시각을 가진 일반적인 응답자.",
+                        "decision_making_style": "신중형",
+                        "social_orientation": "중도적"
+                    }
     
     # None 필터링 (에러 fallback이 idx를 정확히 못잡았을 경우 대비)
     personas = [p for p in personas if p is not None]

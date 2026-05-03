@@ -8,6 +8,7 @@ import os
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from utils.llm_client import generate_text, generate_json
+from utils.localization import get_cultural_context
 import config
 
 
@@ -81,17 +82,12 @@ JSON 형식으로 응답해주세요:
     return generate_json(prompt)
 
 
-def structure_final_topic(topic: str, context: str) -> dict:
+def structure_final_topic(topic: str, context: str, language: str = 'ko') -> dict:
     """
     최종 연구 주제를 구조화합니다.
-    
-    Args:
-        topic: 연구 주제
-        context: 전체 대화 맥락
-    
-    Returns:
-        구조화된 연구 주제 정보 (인구통계 제약 포함)
     """
+    cul_ctx = get_cultural_context(language)
+    
     prompt = f"""
 다음 정보를 바탕으로 Q방법론 연구의 최종 주제를 구조화해주세요.
 
@@ -124,7 +120,9 @@ demographic_constraints 작성 시 주의사항:
 - "대학생" → occupation_types: ["대학생", "대학원생"]
 - 성별 언급이 없으면 gender: null
 """
-    return generate_json(prompt)
+    result = generate_json(prompt, system_prompt=cul_ctx["system_prompt"])
+    result['language'] = language
+    return result
 
 
 def refine_topic_interactive() -> dict:
@@ -186,7 +184,7 @@ def refine_topic_interactive() -> dict:
     return final_topic
 
 
-def refine_topic_from_string(initial_topic: str) -> dict:
+def refine_topic_from_string(initial_topic: str, language: str = 'ko') -> dict:
     """
     주어진 주제 문자열로부터 직접 주제를 구조화합니다. (비대화형)
     
@@ -197,7 +195,7 @@ def refine_topic_from_string(initial_topic: str) -> dict:
         구조화된 연구 주제
     """
     evaluation = evaluate_topic_clarity(initial_topic)
-    return structure_final_topic(initial_topic, f"초기 주제: {initial_topic}")
+    return structure_final_topic(initial_topic, f"초기 주제: {initial_topic}", language)
 
 
 if __name__ == "__main__":

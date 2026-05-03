@@ -125,6 +125,7 @@ def start_analysis():
     data = request.json
     topic = data.get('topic', '')
     api_key = data.get('api_key', '').strip()
+    language = data.get('language', 'ko')
     
     if not topic:
         return jsonify({'error': '연구 주제를 입력해주세요.'}), 400
@@ -146,6 +147,7 @@ def start_analysis():
     sessions[session_id] = {
         'status': 'started',
         'topic': topic,
+        'language': language,
         'api_key': api_key,
         'progress': 0,
         'current_step': '시작',
@@ -155,19 +157,19 @@ def start_analysis():
     }
     
     # 백그라운드에서 분석 실행
-    print(f"\n[API] 분석 시작 요청 - 세션: {session_id}", flush=True)
+    print(f"\n[API] 분석 시작 요청 - 세션: {session_id} (Language: {language})", flush=True)
     print(f"[API] 스레드 생성 중...", flush=True)
-    thread = threading.Thread(target=run_analysis_background, args=(session_id, topic, api_key), daemon=True)
+    thread = threading.Thread(target=run_analysis_background, args=(session_id, topic, api_key, language), daemon=True)
     thread.start()
     print(f"[API] 스레드 시작됨 - Thread ID: {thread.ident}", flush=True)
     
     return jsonify({'session_id': session_id})
 
 
-def run_analysis_background(session_id: str, topic: str, api_key: str):
+def run_analysis_background(session_id: str, topic: str, api_key: str, language: str = 'ko'):
     """백그라운드에서 분석 실행"""
     import sys
-    print(f"\n[THREAD] 백그라운드 스레드 시작: {session_id}", flush=True)
+    print(f"\n[THREAD] 백그라운드 스레드 시작: {session_id} (Lang: {language})", flush=True)
     print(f"[THREAD] 주제: {topic[:50]}...", flush=True)
     print(f"[THREAD] API Key: {'서버 설정 사용' if not api_key else api_key[:10] + '...'}", flush=True)
     sys.stdout.flush()
@@ -191,7 +193,7 @@ def run_analysis_background(session_id: str, topic: str, api_key: str):
         # Step 1: 주제 구체화
         print("[THREAD] Step 1 시작: 주제 구체화")
         update_session(session_id, 1, "주제 구체화 중...", 5)
-        topic_info = refine_topic_from_string(topic)
+        topic_info = refine_topic_from_string(topic, language)
         update_session(session_id, 1, f"주제 확정: {topic_info.get('final_topic', topic)}", 15)
         print(f"[THREAD] Step 1 완료: {topic_info.get('final_topic', topic)}")
         
